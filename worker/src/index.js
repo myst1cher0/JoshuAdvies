@@ -1,5 +1,8 @@
 /* ---------- Instellingen ---------- */
-const MODEL = "gemini-2.0-flash";
+// 'gemini-flash-latest' is een vaste naam die altijd naar de werkende
+// Flash-versie wijst. Concrete versienamen (gemini-2.0-flash) worden
+// door Google na enige tijd verwijderd en geven dan een 404.
+const MODEL = "gemini-flash-latest";
 const GEMINI = m => `https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent`;
 const MODEL_MAX = 100;
 const CACHE_DAGEN = 180;
