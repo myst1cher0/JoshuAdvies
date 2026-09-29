@@ -48,6 +48,15 @@
   .stappen p { margin:0 0 .6rem; font-size:1.25rem; }
   .stappen p:last-child { margin-bottom:0; }
   .subkop { font-size:1.25rem; font-weight:700; margin:1.5rem 0 .6rem; }
+  .risico { background:var(--surface); border:2px solid var(--line); border-left:8px solid #c0392b; border-radius:.75rem; padding:1.25rem; margin-bottom:1.5rem; }
+  .risico h2 { font-size:1.3rem; margin:0 0 .8rem; }
+  .risico ul { margin:0; padding-left:1.4rem; }
+  .risico li { margin-bottom:.7rem; }
+  .risico li:last-child { margin-bottom:0; }
+  .risico b { display:block; }
+  .let-op { background:#fff7d6; border-left:8px solid var(--mark); border-radius:.5rem; padding:1.1rem 1.25rem; margin-bottom:1.5rem; }
+  .let-op p { margin:0 0 .6rem; }
+  .let-op p:last-child { margin-bottom:0; }
 </style>
 </head>
 <body>
@@ -68,7 +77,8 @@ const PLATFORMS = {
     reden: "Vanaf 14 oktober 2025 krijgt Windows 10 geen beveiligingsupdates meer.",
     zoek: "Klik op de Start-knop > Instellingen > Systeem > Over > kijk bij Editie wat er staat, bijvoorbeeld Windows 11 Pro",
     naamZoek: "Klik op de Start-knop > Instellingen > Systeem > Over > bovenaan staat de naam van uw computer",
-    versies: [["Windows 7 of ouder", 7], ["Windows 8", 8], ["Windows 10", 10], ["Windows 11 of nieuwer", 11]]
+    versies: [["Windows 7 of ouder", 7], ["Windows 8", 8], ["Windows 10", 10], ["Windows 11 of nieuwer", 11]],
+    kunnen: "Op Windows kunnen wij meestal controleren of de computer Windows 11 aankan. Die controle is gratis."
   },
   MacOS: {
     min: 14,
@@ -76,7 +86,8 @@ const PLATFORMS = {
     reden: "Apple geeft alleen nog beveiligingsupdates vanaf macOS 14 (Sonoma).",
     zoek: "Klik op het Apple-menu linksboven > Over deze Mac > lees het versienummer",
     naamZoek: "Klik op het Apple-menu linksboven > Over deze Mac > bovenaan staat de naam, bijvoorbeeld Macs van Jan",
-    versies: [["macOS 13 of ouder", 13], ["macOS 14 (Sonoma)", 14], ["macOS 15 of nieuwer", 15]]
+    versies: [["macOS 13 of ouder", 13], ["macOS 14 (Sonoma)", 14], ["macOS 15 of nieuwer", 15]],
+    kunnen: "Bij een Mac kunnen wij controleren of er nog een nieuwere versie beschikbaar is."
   },
   Android: {
     min: 12,
@@ -84,7 +95,9 @@ const PLATFORMS = {
     reden: "De app van ABN AMRO, en met haar de meeste Nederlandse banken, vraagt minimaal Android 12.",
     zoek: "Open Instellingen > Over de telefoon of Over de tablet > Android-versie",
     naamZoek: "Open Instellingen > Over de telefoon of Over de tablet > bovenaan staat de modelnaam en de apparaatnaam",
-    versies: [["Android 10 of ouder", 10], ["Android 11", 11], ["Android 12", 12], ["Android 13 of nieuwer", 13]]
+    versies: [["Android 10 of ouder", 10], ["Android 11", 11], ["Android 12", 12], ["Android 13 of nieuwer", 13]],
+    kunnen: "Op Android kunnen wij meestal hulp bieden met bijwerken.",
+    luktNiet: "Een Android-apparaat dat te oud is om bijgewerkt te worden, komt hier vaak voor. Dan is een nieuw apparaat de enige oplossing."
   },
   iOS: {
     min: 16,
@@ -92,7 +105,8 @@ const PLATFORMS = {
     reden: "De apps van de Nederlandse banken vragen minimaal iOS 16. Bij iOS 15 en ouder werken ze niet meer.",
     zoek: "Open Instellingen > Algemeen > Info > Softwareversie",
     naamZoek: "Open Instellingen > Algemeen > Info > bovenaan staat de naam, bijvoorbeeld iPhone van Jan",
-    versies: [["iOS 15 of ouder", 15], ["iOS 16", 16], ["iOS 17", 17], ["iOS 18 of nieuwer", 18]]
+    versies: [["iOS 15 of ouder", 15], ["iOS 16", 16], ["iOS 17", 17], ["iOS 18 of nieuwer", 18]],
+    kunnen: "Bij een iPhone kunnen wij de software niet bijwerken. Apple bepaalt zelf hoe ver een iPhone kan, en een oude iPhone kan vaak niet verder."
   },
   iPadOS: {
     min: 16,
@@ -100,12 +114,13 @@ const PLATFORMS = {
     reden: "De apps van de Nederlandse banken vragen minimaal iPadOS 16. Bij iPadOS 15 en ouder werken ze niet meer.",
     zoek: "Open Instellingen > Algemeen > Info > Softwareversie",
     naamZoek: "Open Instellingen > Algemeen > Info > bovenaan staat de naam, bijvoorbeeld iPad van Jan",
-    versies: [["iPadOS 15 of ouder", 15], ["iPadOS 16", 16], ["iPadOS 17", 17], ["iPadOS 18 of nieuwer", 18]]
+    versies: [["iPadOS 15 of ouder", 15], ["iPadOS 16", 16], ["iPadOS 17", 17], ["iPadOS 18 of nieuwer", 18]],
+    kunnen: "Bij een iPad kunnen wij de software niet bijwerken. Apple bepaalt zelf hoe ver een iPad kan, en een oude iPad kan vaak niet verder.",
   }
 };
 
 /* ---------- Vragen ---------- */
-const state = { apparaat: "", systeem: "", versie: "", versieNummer: 0, traag: "" };
+const state = { apparaat: "", systeem: "", versie: "", versieNummer: 0, update: "", traag: "" };
 const pad = [];
 
 const stappen = {
@@ -133,9 +148,19 @@ const stappen = {
     volgende: v => {
       if (v === "weetniet") return "versie-info";
       const p = PLATFORMS[state.systeem];
-      if (v < p.min) return "teoud";
+      if (v < p.min) return "update";
       return v === p.min ? "bijna" : "traag";
     }
+  },
+  update: {
+    vraag: () => "Kunt u het apparaat zelf nog updaten?",
+    hulp: () => "Open de instellingen van uw apparaat en kijk of er een knop staat om te updaten. Veel apparaten kunnen nog bijgewerkt worden, maar sommige niet.",
+    opties: () => [
+      ["Ja, er staat een updateknop", "ja"],
+      ["Nee, of ik zie het niet", "nee"],
+      ["Ik weet het niet", "weetniet"]
+    ],
+    volgende: v => v === "weetniet" ? "update-uitleg" : "update-uitleg"
   },
   traag: {
     vraag: () => "Heeft u de laatste tijd last van traagheid?",
@@ -232,6 +257,59 @@ function toonKlaar(naam) {
     k3.append(el("p", "", "Schrijf beide op, of bel ons even. Met de naam en de versie weten wij meteen wat er aan de hand is."));
     k3.append(belRegel("Bel ons op:"));
     scherm.append(kop1, k, kop2, k2, k3, begin(), terugKnop());
+  } else if (naam === "update-uitleg") {
+    const p = PLATFORMS[state.systeem];
+    const telefoon = state.apparaat === "telefoon";
+    const label = p.versies.find(([, w]) => w === state.versie)[0];
+    h = leeg("Voordat wij een update doen");
+
+    const s = el("div", "samenvatting");
+    s.append(el("span", "label", "Lees dit voor aan ons"));
+    s.append(el("p", "", "Dit apparaat draait " + label + ", en heeft het minimum van " + p.minLabel + " nodig. De klant " + (state.update === "ja" ? "zegt dat er een updateknop beschikbaar is" : state.update === "nee" ? "kan het apparaat niet meer updaten" : "weet niet of er een updateknop beschikbaar is") + ". Wij moeten eerst uitzoeken of een update haalt wat de klant nodig heeft."));
+    const f = el("div", "kader feiten");
+    [["Apparaat", state.apparaat], ["Systeem", state.systeem], ["Versie", label], ["Updateknop", state.update === "ja" ? "Aanwezig" : state.update === "nee" ? "Niet aanwezig" : "Onbekend"], ["Ons advies", "Eerst kijken of een update haalt"]].forEach(([k2, v]) => {
+      const rij = el("div"); rij.append(el("b", "", k2), el("span", "", String(v))); f.append(rij);
+    });
+    scherm.append(s, f);
+
+    const k3 = el("div", "kader");
+    k3.append(el("p", "", p.kunnen));
+    if (state.update === "nee" && p.luktNiet) k3.append(el("p", "", p.luktNiet));
+    scherm.append(k3);
+
+    const r = el("div", "risico");
+    r.append(el("h2", "", "Wat u moet weten voordat wij beginnen"));
+    const ul = el("ul");
+    const risicos = [];
+    risicos.push(["Alles wordt gewist", "Bij het bijwerken wordt het apparaat helemaal leeggehaald. Uw foto's, contacten, berichten en downloads zijn daarna weg. Dit is de grootste risico."]);
+    risicos.push(["De bankapp werkt pas weer ná de update", "Een bankapp zoals die van ABN AMRO, ING, Rabobank of bunq eist een nieuwere versie. Dus juist dóór de update krijgt u uw bank weer goed werkend, en niet eerder."]);
+    risicos.push(["U moet opnieuw inloggen", "Na het bijwerken installeert u uw apps opnieuw. Bij uw bankapp moet u zich opnieuw aanmelden, en soms opnieuw bevestigen met uw bank. Zorg dat u uw gegevens en uw oude pincode of digitaal identificeren bij de hand heeft."]);
+    if (telefoon) {
+      risicos.push(["Let extra op bij een telefoon", "Op een telefoon staat uw bank bijna altijd. Een mislukte update betekent dat u tijdelijk geen toegang heeft tot uw saldo of een betaling moet doen. Plan de update op een moment dat u niets nodig heeft, en niet vlak voor uw vakantie."]);
+    }
+    risicos.push(["Het apparaat kan trager worden", "Nieuwere software vraagt meer van de hardware. Een oud apparaat kan na het bijwerken juist langzamer worden, bijvoorbeeld bij streamen of bij het opstarten."]);
+    risicos.push(["De update kan mislukken", "Soms loopt een update vast of blijft het apparaat op het laadscherm staan. Dan kan het apparaat onbruikbaar worden. Wij zeggen het eerlijk als wij dat risico zien."]);
+    if (telefoon) {
+      risicos.push(["Streaming kan minder goed werken", "Oudere apparaten kunnen moeite hebben met beeld in hoge kwaliteit. Let dus niet alleen op de versie, maar ook op hoe het apparaat voelt tijdens het kijken."]);
+    } else {
+      risicos.push(["De garantie kan vervallen", "Bij sommige fabrikanten vervalt de garantie wanneer wij het apparaat hebben opengehad. Wij zeggen het vooraf als dat bij uw merk zo is."]);
+    }
+    risicos.forEach(([kop, tekst]) => {
+      const li = el("li"); li.append(el("b", "", kop), document.createTextNode(tekst)); ul.append(li);
+    });
+    r.append(ul);
+    scherm.append(r);
+
+    const l = el("div", "let-op");
+    l.append(el("p", "", "Onze eerlijke inschatting: wij kunnen pas zeggen of de update genoeg oplevert nadat wij het apparaat hebben bekeken. Wij beloven niet dat het daarna een nieuw apparaat overtreft. Soms is bijwerken een prima oplossing, en soms niet. Dat hoort u dan van ons, voordat wij iets doen."));
+    scherm.append(l);
+
+    const k4 = el("div", "kader");
+    k4.append(el("p", "", "Wij leggen dit samen met u door voordat er iets gebeurt. Er wordt niets gewist zonder dat u ja zegt."));
+    k4.append(belRegel("Bel ons op:"));
+    const naarAdvies = el("button", "btn", "Naar ons advies"); naarAdvies.type = "button";
+    naarAdvies.onclick = () => gaNaar("advies-nieuw");
+    scherm.append(k4, naarAdvies, begin(), terugKnop());
   } else if (naam === "bijna") {
     const p = PLATFORMS[state.systeem];
     const label = p.versies.find(([, w]) => w === state.versie)[0];
@@ -248,21 +326,24 @@ function toonKlaar(naam) {
     k3.append(el("p", "", "Wij bespreken graag met u of direct vervangen verstandig is, of dat u het nog even aanhoudt."));
     k3.append(belRegel("Bel ons op:"));
     scherm.append(s, f, k3, begin(), terugKnop());
-  } else if (naam === "teoud") {
+  } else if (naam === "advies-nieuw") {
     const p = PLATFORMS[state.systeem];
     const label = p.versies.find(([, w]) => w === state.versie)[0];
     const android = state.systeem === "Android";
-    h = leeg(android ? "Uw software is te oud" : "Wij adviseren een nieuw apparaat");
+    const kanBijwerken = state.update !== "nee";
+    h = leeg("Ons advies");
     const s = el("div", "samenvatting");
     s.append(el("span", "label", "Lees dit voor aan ons"));
-    s.append(el("p", "", "Dit apparaat draait " + label + ". " + p.minLabel + " is het minimum voor moderne apps. " + (android ? "Wij kijken eerst of wij dit apparaat kunnen bijwerken." : "Wij adviseren een nieuw apparaat.")));
+    s.append(el("p", "", "Dit apparaat draait " + label + ", en " + p.minLabel + " is het minimum. " + (kanBijwerken
+      ? (android ? "Wij kijken eerst of wij dit apparaat kunnen bijwerken." : "Wij kijken eerst of er een update mogelijk is.")
+      : "U zegt dat het apparaat niet meer bijgewerkt kan worden, en dan lukt een update niet meer.")));
     const f = el("div", "kader feiten");
-    [["Apparaat", state.apparaat], ["Systeem", state.systeem], ["Versie", label], ["Ons advies", android ? "Eerst kijken of een update lukt" : "Nieuw apparaat"]].forEach(([k2, v]) => {
+    [["Apparaat", state.apparaat], ["Systeem", state.systeem], ["Versie", label], ["Updateknop", state.update === "ja" ? "Aanwezig" : state.update === "nee" ? "Niet aanwezig" : "Onbekend"], ["Ons advies", kanBijwerken ? "Eerst kijken of een update haalt" : "Nieuw apparaat"]].forEach(([k2, v]) => {
       const rij = el("div"); rij.append(el("b", "", k2), el("span", "", String(v))); f.append(rij);
     });
     const k3 = el("div", "kader");
     k3.append(el("p", "", p.reden));
-    if (android) {
+    if (android && kanBijwerken) {
       k3.append(el("p", "", "Bij veel Android-apparaten kunnen wij de software bijwerken, zodat u geen nieuw apparaat hoeft te kopen. Dat hangt af van het merk en type. Wij kijken dat voor u na."));
       k3.append(el("p", "", "Let op: bij het bijwerken wordt alles op het apparaat gewist. Bewaar dus eerst uw foto's en contacten."));
     } else {
@@ -275,7 +356,7 @@ function toonKlaar(naam) {
 }
 
 /* ---------- Navigatie ---------- */
-const VOLGORDE = ["apparaat", "systeem", "versie", "traag"];
+const VOLGORDE = ["apparaat", "systeem", "versie", "update", "traag"];
 function gaNaar(naam) {
   pad.push(huidige);
   huidige = naam;
