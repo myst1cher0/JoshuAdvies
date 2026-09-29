@@ -35,6 +35,15 @@
   .hulp { color:var(--muted); margin:0 0 1rem; }
   .kader { background:var(--surface); border:2px solid var(--line); border-radius:.75rem; padding:1.25rem; margin-bottom:1.5rem; }
   .kader p { margin:0 0 .8rem; } .kader p:last-child { margin-bottom:0; }
+  .samenvatting { background:var(--surface); border:3px solid var(--go); border-radius:.75rem; padding:1.4rem 1.4rem 1.6rem; margin-bottom:1.25rem; }
+  .samenvatting .label { display:block; font-size:1.1rem; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; margin-bottom:.6rem; }
+  .samenvatting p { font-size:1.45rem; line-height:1.5; margin:0; }
+  .feiten { font-size:1.1rem; color:var(--muted); }
+  .feiten div { display:flex; gap:.5rem; padding:.35rem 0; border-bottom:1px solid var(--line); }
+  .feiten div:last-child { border-bottom:none; }
+  .feiten b { min-width:9rem; color:var(--ink); }
+  .fout { background:#ffecec; border-left:8px solid #c0392b; color:#7a1d14; border-radius:.5rem; padding:1rem 1.25rem; margin-bottom:1.5rem; }
+  .fout:empty { display:none; }
   .laden { font-size:1.3rem; }
   .bol { display:inline-block; width:1rem; height:1rem; border-radius:50%; background:var(--go); margin-right:.5rem; animation:puls 1.2s infinite ease-in-out; }
   @keyframes puls { 50% { opacity:.25; } }
@@ -49,9 +58,15 @@
 /* ---------- Instellingen ---------- */
 const CONFIG = {
   // Adres van de dienst die het apparaat opzoekt (zie uitleg). Leeg = de test toont een terugbel-scherm.
-  ZOEK_ENDPOINT: "",
+  ZOEK_ENDPOINT: "https://joshuadvies-api.JOUW_NAAM.workers.dev",
   TELEFOON: "06 16130995",
   TELEFOON_LINK: "tel:+31616130995"
+};
+
+const ADVIES = {
+  software: "Nieuwere software installeren kan helpen",
+  nieuw: "Een nieuw apparaat is beter",
+  onbekend: "Wij moeten dit samen bekijken"
 };
 
 /* ---------- Vragen ---------- */
@@ -108,12 +123,29 @@ function toonStap(naam) {
   const s = stappen[naam];
   const h = leeg(s.vraag(), "Vraag " + (pad.length + 1));
   if (s.tekst) {
-    const p = el("p", "hulp", s.hulp()); const inp = el("input"); inp.type = "text"; inp.maxLength = 100;
+    const p = el("p", "hulp", s.hulp());
+    const fout = el("div", "fout"); fout.setAttribute("role", "alert");
+    const inp = el("input"); inp.type = "text"; inp.maxLength = 100;
     inp.setAttribute("aria-label", s.vraag()); inp.autocomplete = "off";
+    inp.setAttribute("aria-describedby", "model-fout");
+    fout.id = "model-fout";
     const ga = el("button", "btn", "Volgende"); ga.type = "button";
-    const verstuur = () => { const w = inp.value.trim(); if (w.length < 3) { inp.focus(); return; } state.model = w; ga.blur(); gaNaar(s.volgende()); };
-    ga.onclick = verstuur; inp.onkeydown = e => { if (e.key === "Enter") verstuur(); };
-    scherm.append(p, inp, ga);
+    const verstuur = () => {
+      const w = inp.value.trim();
+      if (w.length < 3) {
+        fout.textContent = "Typ het merk en het typenummer, bijvoorbeeld Samsung Galaxy Tab A7.";
+        inp.focus();
+        return;
+      }
+      fout.textContent = "";
+      state.model = w;
+      ga.blur();
+      gaNaar(s.volgende());
+    };
+    ga.onclick = verstuur;
+    inp.onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); verstuur(); } };
+    inp.oninput = () => { fout.textContent = ""; };
+    scherm.append(p, inp, fout, ga);
   } else {
     const rij = el("div", "keuzes");
     s.opties().forEach(([label, waarde]) => {
@@ -128,6 +160,7 @@ function toonStap(naam) {
 }
 
 function toonKlaar(naam, data) {
+  data = data || {};
   let h;
   if (naam === "nietrelevant") {
     h = leeg("U hoeft niets te doen");
@@ -146,27 +179,42 @@ function toonKlaar(naam, data) {
     const p = el("p", "laden"); p.append(el("span", "bol"), document.createTextNode("Een moment geduld, dit kan een minuutje duren."));
     scherm.append(p);
   } else if (naam === "nazoek") {
-    h = leeg("Bedankt voor uw antwoorden");
+    h = leeg("Wij kijken dit voor u na");
     const k = el("div", "kader");
-    k.append(el("p", "", "Wij kijken dit voor u na. Uw gegevens: " + state.apparaat + ", " + state.systeem + ", " + state.model + "."));
-    k.append(el("p", "", "Wilt u sneller antwoord? Bel ons op: " + CONFIG.TELEFOON));
+    k.append(el("p", "", "U heeft aangegeven: " + state.apparaat + " met " + state.systeem + ", type " + state.model + "."));
+    k.append(el("p", "", "Wij hebben het antwoord op dit moment niet automatisch op kunnen zoeken. Dat is geen probleem, bel ons even en wij denken graag met u mee."));
+    k.append(belRegel("Bel ons op:"));
     scherm.append(k, begin());
   } else if (naam === "advies") {
     h = leeg("Uw advies");
+    const s = el("div", "samenvatting");
+    s.append(el("span", "label", "Lees dit voor aan ons"));
+    s.append(el("p", "", String(data.samenvatting || "Wij kunnen dit apparaat niet betrouwbaar beoordelen. Bel ons even, dan denken wij graag met u mee.")));
+    const f = el("div", "kader feiten");
+    [["Apparaat", data.naam], ["Uitgebracht", data.jaar], ["Laatste software", data.laatsteSoftware], ["Ons advies", ADVIES[data.advies] || "onbekend"]].forEach(([k2, v]) => {
+      const rij = el("div"); rij.append(el("b", "", k2), el("span", "", String(v))); f.append(rij);
+    });
     const k = el("div", "kader");
-    String(data.uitleg || "").split(/\n+/).filter(Boolean).forEach(a => k.append(el("p", "", a)));
-    scherm.append(k, begin());
+    k.append(el("p", "", "Wij zetten dit samen met u door. U kunt ons bellen en bovenstaande tekst voorlezen."));
+    k.append(belRegel("Bel ons op:"));
+    scherm.append(s, f, k, begin());
   }
-  h.focus();
+  if (h) h.focus();
 }
 
 /* ---------- Navigatie ---------- */
+const VOLGORDE = ["apparaat", "systeem", "traag", "model"];
 function gaNaar(naam) {
   pad.push(huidige);
   huidige = naam;
   weergeef();
 }
-function terug() { huidige = pad.pop(); weergeef(); }
+function terug() {
+  huidige = pad.pop();
+  const i = VOLGORDE.indexOf(huidige);
+  if (i >= 0) VOLGORDE.slice(i + 1).forEach(k => { state[k] = ""; });
+  weergeef();
+}
 function weergeef() {
   if (huidige === "zoeken") return zoeken();
   if (stappen[huidige]) return toonStap(huidige);
@@ -175,14 +223,6 @@ function weergeef() {
 let huidige = "apparaat";
 
 /* ---------- Opzoeken ---------- */
-function maakPrompt() {
-  const ap = { computer: "computer (laptop of pc)", tablet: "tablet", telefoon: "telefoon" }[state.apparaat];
-  return "Een oudere klant heeft een " + ap + " met " + state.systeem + ", type: \u201C" + state.model + "\u201D. Het apparaat is de laatste tijd traag. " +
-    "Zoek op het internet op wat dit apparaat precies is en welke software-versie het nog kan krijgen. " +
-    "Beoordeel: kan er een nieuwere of andere software op geïnstalleerd worden, of is het handiger een ander apparaat te kopen? " +
-    "Antwoord alleen met JSON: {\"uitkomst\":\"software\"|\"nieuw\"|\"onbekend\",\"uitleg\":\"...\"}. " +
-    "Schrijf de uitleg in eenvoudig Nederlands voor iemand die niets van techniek weet, zonder vakwoorden, in maximaal 4 korte alinea's.";
-}
 async function zoeken() {
   toonKlaar("laden");
   if (!CONFIG.ZOEK_ENDPOINT) { setTimeout(() => toonKlaar("nazoek"), 800); return; }
@@ -190,11 +230,11 @@ async function zoeken() {
   try {
     const r = await fetch(CONFIG.ZOEK_ENDPOINT, {
       method: "POST", headers: { "Content-Type": "application/json" }, signal: ctrl.signal,
-      body: JSON.stringify({ prompt: maakPrompt(), apparaat: state })
+      body: JSON.stringify({ apparaat: { apparaat: state.apparaat, systeem: state.systeem, model: state.model } })
     });
     if (!r.ok) throw new Error(r.status);
-    const tekst = await r.text(); let d;
-    try { d = JSON.parse(tekst); } catch { d = { uitleg: tekst }; }
+    const d = await r.json();
+    if (d && d.fout) throw new Error(d.fout);
     toonKlaar("advies", d);
   } catch (e) { toonKlaar("nazoek"); }
   finally { clearTimeout(t); }

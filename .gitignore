@@ -1,0 +1,16 @@
+# Afhankelijkheden
+node_modules/
+
+# Lokaal geheime sleutels. NOOIT committen.
+# Hier staat uw echte API-sleutel in wanneer u lokaal test met npm run dev.
+.dev.vars
+.env
+.env.*
+
+# Cloudflare
+.wrangler/
+
+# Systeem
+.DS_Store
+Thumbs.db
+*.log
