@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JoshuAdvies – Is uw tablet nog goed genoeg?</title>
+<meta name="description" content="Ontdek in een paar minuten of uw tablet of telefoon nog goed genoeg is voor het dagelijks leven, en of een upgrade mogelijk is.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f2f7f8;
+    --surface: #ffffff;
+    --ink: #12303b;
+    --muted: #3f5963;
+    --line: #c9dbe0;
+    --go: #0b6e4f;
+    --go-dark: #085740;
+    --mark: #ffd54a;
+  }
+  * { box-sizing: border-box; }
+  html { font-size: 112.5%; }
+  body {
+    margin: 0;
+    font-family: "Atkinson Hyperlegible", Verdana, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.6;
+  }
+  .wrap { max-width: 44rem; margin: 0 auto; padding: 0 1.25rem; }
+  header { padding: 1.25rem 0; border-bottom: 2px solid var(--line); background: var(--surface); }
+  .logo { font-size: 1.4rem; font-weight: 700; color: var(--ink); text-decoration: none; }
+  .logo span { background: var(--mark); padding: 0 .3rem; border-radius: .25rem; }
+
+  .hero { padding: 3rem 0 2.5rem; }
+  h1 { font-size: clamp(2.1rem, 7vw, 3.2rem); line-height: 1.15; margin: 0 0 1rem; }
+  .lead { font-size: 1.25rem; color: var(--muted); margin: 0 0 2rem; max-width: 36rem; }
+
+  .btn {
+    display: inline-block;
+    background: var(--go);
+    color: #fff;
+    font: inherit;
+    font-size: 1.4rem;
+    font-weight: 700;
+    text-decoration: none;
+    padding: 1.1rem 2.2rem;
+    border-radius: .75rem;
+    border-bottom: 5px solid var(--go-dark);
+  }
+  .btn:hover { background: var(--go-dark); }
+  .btn:active { transform: translateY(2px); border-bottom-width: 3px; }
+  a:focus-visible, .btn:focus-visible { outline: 4px solid var(--ink); outline-offset: 4px; }
+  .hint { margin: 1rem 0 0; color: var(--muted); }
+
+  section { padding: 2rem 0; }
+  h2 { font-size: 1.7rem; margin: 0 0 1.25rem; }
+  ol { list-style: none; counter-reset: stap; margin: 0; padding: 0; }
+  ol li {
+    counter-increment: stap;
+    position: relative;
+    background: var(--surface);
+    border: 2px solid var(--line);
+    border-radius: .75rem;
+    padding: 1.1rem 1.25rem 1.1rem 4.2rem;
+    margin-bottom: 1rem;
+  }
+  ol li::before {
+    content: counter(stap);
+    position: absolute; left: 1.1rem; top: 1rem;
+    width: 2.2rem; height: 2.2rem; border-radius: 50%;
+    background: var(--mark); color: var(--ink);
+    font-weight: 700; font-size: 1.2rem;
+    display: grid; place-items: center;
+  }
+  ol strong { display: block; font-size: 1.15rem; }
+  ol li.uitgebreid { border-color: var(--go); padding-top: 1.3rem; padding-bottom: 1.3rem; }
+  ol li.uitgebreid strong { font-size: 1.4rem; margin-bottom: .6rem; }
+  ol li.uitgebreid strong.inline { display: inline; font-size: inherit; margin: 0; }
+  ol li.uitgebreid p { margin: 0 0 .8rem; }
+  ol li.uitgebreid p:last-child { margin-bottom: 0; }
+
+  .note {
+    background: #fff7d6;
+    border-left: 8px solid var(--mark);
+    border-radius: .5rem;
+    padding: 1.1rem 1.25rem;
+  }
+  .note h2 { font-size: 1.3rem; margin-bottom: .5rem; }
+  .note p { margin: 0; }
+
+  .cta-bottom { text-align: center; padding: 2.5rem 0 3rem; }
+  footer { border-top: 2px solid var(--line); padding: 1.5rem 0; color: var(--muted); font-size: .9rem; background: var(--surface); }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap"><a class="logo" href="/">Joshu<span>Advies</span></a></div>
+</header>
+
+<main>
+  <div class="wrap">
+    <div class="hero">
+      <h1>Is uw apparaat nog goed genoeg?</h1>
+      <p class="lead">Beantwoord een paar eenvoudige vragen. Wij vertellen u of uw tablet, telefoon of computer nog prima werkt voor het dagelijks leven.</p>
+      <a class="btn" href="quiz/index.html">Start de test</a>
+      <p class="hint">Duurt ongeveer 5 minuten. U hoeft niets te installeren.</p>
+    </div>
+
+    <section>
+      <h2>Zo werkt het</h2>
+      <ol>
+        <li><strong>Beantwoord de vragen</strong>Over uw apparaat en waarvoor u het gebruikt, zoals bellen, appen, foto's en bankieren.</li>
+        <li><strong>Ontvang uw advies</strong>U hoort of uw apparaat nog goed genoeg is, of dat het tijd wordt voor iets anders.</li>
+        <li class="uitgebreid">
+          <strong>Kijk of uw apparaat vernieuwd kan worden</strong>
+          <p>Soms is een apparaat technisch nog prima, maar is de software te oud geworden. Dan wordt de kwaliteit van het streamen lager, bijvoorbeeld bij Netflix of YouTube, en kan het zijn dat uw bank-app niet meer werkt. Het apparaat zelf is dan niet kapot, het heeft alleen een update nodig.</p>
+          <p>Bij veel oudere apparaten stopt de fabrikant met updates sturen. Als uw apparaat er geschikt voor is, kunnen we het van een nieuwe versie van de software voorzien. Zo kan het nog jaren mee, en hoeft u geen nieuw apparaat te kopen.</p>
+          <p><strong class="inline">Let op: dit doen wij alleen voor Android-tablets.</strong> Voor telefoons doen wij het niet en raden wij het ook niet aan. Bij Apple-apparaten (iPad en iPhone) is het niet mogelijk. Op een computer of laptop is het niet nodig, want uw bank opent u daar gewoon in de internetbrowser en dat blijft werken.</p>
+          <p>In de test ziet u meteen of dit voor uw apparaat van toepassing is. Is het niet mogelijk of niet verstandig, dan zeggen wij dat eerlijk.</p>
+        </li>
+      </ol>
+    </section>
+
+    <section>
+      <div class="note">
+        <h2>Goed om te weten</h2>
+        <p>Bij het vernieuwen van de software wordt alles op het apparaat gewist, en de garantie van de fabrikant kan vervallen. Bewaar daarom eerst uw foto's en contacten op een andere plek. Wij helpen u daar graag bij.</p>
+      </div>
+    </section>
+
+    <div class="cta-bottom">
+      <a class="btn" href="quiz/index.html">Start de test</a>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">© JoshuAdvies.nl</div>
+</footer>
+
+</body>
+</html>
