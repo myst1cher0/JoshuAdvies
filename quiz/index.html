@@ -44,10 +44,9 @@
   .feiten b { min-width:9rem; color:var(--ink); }
   .fout { background:#ffecec; border-left:8px solid #c0392b; color:#7a1d14; border-radius:.5rem; padding:1rem 1.25rem; margin-bottom:1.5rem; }
   .fout:empty { display:none; }
-  .laden { font-size:1.3rem; }
-  .bol { display:inline-block; width:1rem; height:1rem; border-radius:50%; background:var(--go); margin-right:.5rem; animation:puls 1.2s infinite ease-in-out; }
-  @keyframes puls { 50% { opacity:.25; } }
-  @media (prefers-reduced-motion: reduce) { .bol { animation:none; } }
+  .stappen { background:var(--surface); border:3px solid var(--ink); border-radius:.75rem; padding:1.25rem; margin-bottom:1.5rem; }
+  .stappen p { margin:0 0 .6rem; font-size:1.25rem; }
+  .stappen p:last-child { margin-bottom:0; }
 </style>
 </head>
 <body>
@@ -57,20 +56,50 @@
 <script>
 /* ---------- Instellingen ---------- */
 const CONFIG = {
-  // Adres van de dienst die het apparaat opzoekt (zie uitleg). Leeg = de test toont een terugbel-scherm.
-  ZOEK_ENDPOINT: "https://joshuadvies-api.JOUW_NAAM.workers.dev",
   TELEFOON: "06 16130995",
   TELEFOON_LINK: "tel:+31616130995"
 };
 
-const ADVIES = {
-  software: "Nieuwere software installeren kan helpen",
-  nieuw: "Een nieuw apparaat is beter",
-  onbekend: "Wij moeten dit samen bekijken"
+const PLATFORMS = {
+  Windows: {
+    min: 11,
+    minLabel: "Windows 11",
+    reden: "Vanaf 14 oktober 2025 krijgt Windows 10 geen beveiligingsupdates meer.",
+    zoek: "Klik op de Start-knop > Instellingen > Systeem > Over > kijk bij Editie wat er staat, bijvoorbeeld Windows 11 Pro",
+    versies: [["Windows 7 of ouder", 7], ["Windows 8", 8], ["Windows 10", 10], ["Windows 11 of nieuwer", 11]]
+  },
+  MacOS: {
+    min: 14,
+    minLabel: "macOS 14 (Sonoma) of nieuwer",
+    reden: "Apple geeft alleen nog beveiligingsupdates vanaf macOS 14 (Sonoma).",
+    zoek: "Klik op het Apple-menu linksboven > Over deze Mac > lees de naam en het versienummer",
+    versies: [["macOS 12 of ouder", 12], ["macOS 13 (Ventura)", 13], ["macOS 14 (Sonoma)", 14], ["macOS 15 of nieuwer", 15]]
+  },
+  Android: {
+    min: 11,
+    minLabel: "Android 11 of nieuwer",
+    reden: "Veel apps, waaronder de apps van banken, vragen minimaal Android 11.",
+    zoek: "Open Instellingen > Over de telefoon of Over de tablet > Android-versie",
+    versies: [["Android 9 of ouder", 9], ["Android 10", 10], ["Android 11", 11], ["Android 12", 12], ["Android 13 of nieuwer", 13]]
+  },
+  iOS: {
+    min: 17,
+    minLabel: "iOS 17 of nieuwer",
+    reden: "De apps van banken vragen minimaal iOS 17.",
+    zoek: "Open Instellingen > Algemeen > Info > Softwareversie",
+    versies: [["iOS 16 of ouder", 16], ["iOS 17", 17], ["iOS 18", 18], ["iOS 26 of nieuwer", 26]]
+  },
+  iPadOS: {
+    min: 17,
+    minLabel: "iPadOS 17 of nieuwer",
+    reden: "De apps van banken vragen minimaal iPadOS 17.",
+    zoek: "Open Instellingen > Algemeen > Info > Softwareversie",
+    versies: [["iPadOS 16 of ouder", 16], ["iPadOS 17", 17], ["iPadOS 18", 18], ["iPadOS 26 of nieuwer", 26]]
+  }
 };
 
 /* ---------- Vragen ---------- */
-const state = { apparaat: "", systeem: "", traag: "", model: "" };
+const state = { apparaat: "", systeem: "", versie: "", versieNummer: 0, traag: "" };
 const pad = [];
 
 const stappen = {
@@ -82,22 +111,28 @@ const stappen = {
   systeem: {
     vraag: () => "Welk systeem gebruikt u?",
     opties: () => ({
-      computer: [["Windows", "Windows"], ["MacOS (Apple)", "MacOS"]],
+      computer: [["Windows", "Windows"], ["macOS (Apple)", "MacOS"]],
       tablet: [["Android", "Android"], ["iPadOS (iPad van Apple)", "iPadOS"]],
       telefoon: [["Android", "Android"], ["iOS (iPhone van Apple)", "iOS"]]
     })[state.apparaat],
-    volgende: () => "traag"
+    volgende: () => "versie"
+  },
+  versie: {
+    vraag: () => "Welke versie gebruikt u?",
+    hulp: () => "Weet u het niet zeker? Kies dan onderaan de knop Weet ik niet. Wij leggen stap voor stap uit waar u het vindt.",
+    opties: () => {
+      const p = PLATFORMS[state.systeem];
+      return p.versies.map(([label, waarde]) => [label, waarde]).concat([["Weet ik niet", "weetniet"]]);
+    },
+    volgende: v => {
+      if (v === "weetniet") return "versie-info";
+      return v < PLATFORMS[state.systeem].min ? "teoud" : "traag";
+    }
   },
   traag: {
     vraag: () => "Heeft u de laatste tijd last van traagheid?",
     opties: () => [["Ja", "ja"], ["Nee", "nee"]],
-    volgende: v => v === "nee" ? "nietrelevant" : state.apparaat === "telefoon" ? "bel" : "model"
-  },
-  model: {
-    tekst: true,
-    vraag: () => state.apparaat === "computer" ? "Welke computer heeft u?" : "Welke tablet heeft u?",
-    hulp: () => "Typ het merk en het typenummer, bijvoorbeeld \u201CSamsung Galaxy Tab A7\u201D. Vaak staat dit op de achterkant of onderkant van het apparaat.",
-    volgende: () => "zoeken"
+    volgende: v => v === "nee" ? "nietrelevant" : "bel"
   }
 };
 
@@ -117,6 +152,7 @@ function belRegel(voor) {
   const a = link(CONFIG.TELEFOON, CONFIG.TELEFOON_LINK); a.style.fontWeight = "700"; a.style.color = "inherit";
   p.append(a); return p;
 }
+function terugKnop() { const t = el("button", "terug", "\u2190 Vorige vraag"); t.type = "button"; t.onclick = terug; return t; }
 
 /* ---------- Schermen ---------- */
 function toonStap(naam) {
@@ -127,18 +163,18 @@ function toonStap(naam) {
     const fout = el("div", "fout"); fout.setAttribute("role", "alert");
     const inp = el("input"); inp.type = "text"; inp.maxLength = 100;
     inp.setAttribute("aria-label", s.vraag()); inp.autocomplete = "off";
-    inp.setAttribute("aria-describedby", "model-fout");
-    fout.id = "model-fout";
+    inp.setAttribute("aria-describedby", "invoer-fout");
+    fout.id = "invoer-fout";
     const ga = el("button", "btn", "Volgende"); ga.type = "button";
     const verstuur = () => {
       const w = inp.value.trim();
       if (w.length < 3) {
-        fout.textContent = "Typ het merk en het typenummer, bijvoorbeeld Samsung Galaxy Tab A7.";
+        fout.textContent = "Vul hier uw antwoord in.";
         inp.focus();
         return;
       }
       fout.textContent = "";
-      state.model = w;
+      state[naam] = w;
       ga.blur();
       gaNaar(s.volgende());
     };
@@ -147,6 +183,7 @@ function toonStap(naam) {
     inp.oninput = () => { fout.textContent = ""; };
     scherm.append(p, inp, fout, ga);
   } else {
+    if (s.hulp) scherm.append(el("p", "hulp", s.hulp()));
     const rij = el("div", "keuzes");
     s.opties().forEach(([label, waarde]) => {
       const b = el("button", "keuze", label); b.type = "button";
@@ -155,55 +192,61 @@ function toonStap(naam) {
     });
     scherm.append(rij);
   }
-  if (pad.length) { const t = el("button", "terug", "\u2190 Vorige vraag"); t.type = "button"; t.onclick = terug; scherm.append(t); }
+  if (pad.length) scherm.append(terugKnop());
   h.focus();
 }
 
-function toonKlaar(naam, data) {
-  data = data || {};
+function toonKlaar(naam) {
   let h;
   if (naam === "nietrelevant") {
     h = leeg("U hoeft niets te doen");
     const k = el("div", "kader");
-    k.append(el("p", "", "Uw apparaat werkt nog prima. Zolang u geen last heeft van traagheid, is de rest van deze test niet nodig."));
+    k.append(el("p", "", "Uw apparaat is nog up-to-date en krijgt alle beveiligingsupdates. Zolang u geen last heeft van traagheid, is de rest van deze test niet nodig."));
     k.append(el("p", "", "Merkt u later toch dat het langzamer wordt? Doe de test dan gerust opnieuw."));
-    scherm.append(k, begin());
+    scherm.append(k, begin(), terugKnop());
   } else if (naam === "bel") {
     h = leeg("Bel ons even");
     const k = el("div", "kader");
-    k.append(el("p", "", "Bij een telefoon kijken wij graag samen met u wat de beste oplossing is."));
+    k.append(el("p", "", "Uw software is up-to-date, dus het probleem zit waarschijnlijk niet in de versie. Wij kijken graag samen met u wat wél helpt."));
     k.append(belRegel("Bel ons op:"));
-    scherm.append(k, begin());
-  } else if (naam === "laden") {
-    h = leeg("Wij zoeken uw apparaat op");
-    const p = el("p", "laden"); p.append(el("span", "bol"), document.createTextNode("Een moment geduld, dit kan een minuutje duren."));
-    scherm.append(p);
-  } else if (naam === "nazoek") {
-    h = leeg("Wij kijken dit voor u na");
-    const k = el("div", "kader");
-    k.append(el("p", "", "U heeft aangegeven: " + state.apparaat + " met " + state.systeem + ", type " + state.model + "."));
-    k.append(el("p", "", "Wij hebben het antwoord op dit moment niet automatisch op kunnen zoeken. Dat is geen probleem, bel ons even en wij denken graag met u mee."));
-    k.append(belRegel("Bel ons op:"));
-    scherm.append(k, begin());
-  } else if (naam === "advies") {
-    h = leeg("Uw advies");
+    scherm.append(k, begin(), terugKnop());
+  } else if (naam === "versie-info") {
+    const p = PLATFORMS[state.systeem];
+    h = leeg("Zo vindt u uw versie");
+    const k = el("div", "stappen");
+    p.zoek.split(" > ").forEach((deel, i) => k.append(el("p", "", (i + 1) + ". " + deel)));
+    const k2 = el("div", "kader");
+    k2.append(el("p", "", "Lukt het niet, of vindt u het niet terug? Wij helpen u graag even telefonisch."));
+    k2.append(belRegel("Bel ons op:"));
+    scherm.append(k, k2, begin(), terugKnop());
+  } else if (naam === "teoud") {
+    const p = PLATFORMS[state.systeem];
+    const label = p.versies.find(([, w]) => w === state.versie)[0];
+    const android = state.systeem === "Android";
+    h = leeg(android ? "Uw software is te oud" : "Wij adviseren een nieuw apparaat");
     const s = el("div", "samenvatting");
     s.append(el("span", "label", "Lees dit voor aan ons"));
-    s.append(el("p", "", String(data.samenvatting || "Wij kunnen dit apparaat niet betrouwbaar beoordelen. Bel ons even, dan denken wij graag met u mee.")));
+    s.append(el("p", "", "Dit apparaat draait " + label + ". " + p.minLabel + " is het minimum voor moderne apps. " + (android ? "Wij kijken eerst of wij dit apparaat kunnen bijwerken." : "Wij adviseren een nieuw apparaat.")));
     const f = el("div", "kader feiten");
-    [["Apparaat", data.naam], ["Uitgebracht", data.jaar], ["Laatste software", data.laatsteSoftware], ["Ons advies", ADVIES[data.advies] || "onbekend"]].forEach(([k2, v]) => {
+    [["Apparaat", state.apparaat], ["Systeem", state.systeem], ["Versie", label], ["Ons advies", android ? "Eerst kijken of een update lukt" : "Nieuw apparaat"]].forEach(([k2, v]) => {
       const rij = el("div"); rij.append(el("b", "", k2), el("span", "", String(v))); f.append(rij);
     });
-    const k = el("div", "kader");
-    k.append(el("p", "", "Wij zetten dit samen met u door. U kunt ons bellen en bovenstaande tekst voorlezen."));
-    k.append(belRegel("Bel ons op:"));
-    scherm.append(s, f, k, begin());
+    const k3 = el("div", "kader");
+    k3.append(el("p", "", p.reden));
+    if (android) {
+      k3.append(el("p", "", "Bij veel Android-apparaten kunnen wij de software bijwerken, zodat u geen nieuw apparaat hoeft te kopen. Dat hangt af van het merk en type. Wij kijken dat voor u na."));
+      k3.append(el("p", "", "Let op: bij het bijwerken wordt alles op het apparaat gewist. Bewaar dus eerst uw foto's en contacten."));
+    } else {
+      k3.append(el("p", "", "Wij bespreken graag met u welk nieuw apparaat bij u past."));
+    }
+    k3.append(belRegel("Bel ons op:"));
+    scherm.append(s, f, k3, begin(), terugKnop());
   }
   if (h) h.focus();
 }
 
 /* ---------- Navigatie ---------- */
-const VOLGORDE = ["apparaat", "systeem", "traag", "model"];
+const VOLGORDE = ["apparaat", "systeem", "versie", "traag"];
 function gaNaar(naam) {
   pad.push(huidige);
   huidige = naam;
@@ -213,32 +256,14 @@ function terug() {
   huidige = pad.pop();
   const i = VOLGORDE.indexOf(huidige);
   if (i >= 0) VOLGORDE.slice(i + 1).forEach(k => { state[k] = ""; });
+  state.versieNummer = 0;
   weergeef();
 }
 function weergeef() {
-  if (huidige === "zoeken") return zoeken();
   if (stappen[huidige]) return toonStap(huidige);
   toonKlaar(huidige);
 }
 let huidige = "apparaat";
-
-/* ---------- Opzoeken ---------- */
-async function zoeken() {
-  toonKlaar("laden");
-  if (!CONFIG.ZOEK_ENDPOINT) { setTimeout(() => toonKlaar("nazoek"), 800); return; }
-  const ctrl = new AbortController(); const t = setTimeout(() => ctrl.abort(), 60000);
-  try {
-    const r = await fetch(CONFIG.ZOEK_ENDPOINT, {
-      method: "POST", headers: { "Content-Type": "application/json" }, signal: ctrl.signal,
-      body: JSON.stringify({ apparaat: { apparaat: state.apparaat, systeem: state.systeem, model: state.model } })
-    });
-    if (!r.ok) throw new Error(r.status);
-    const d = await r.json();
-    if (d && d.fout) throw new Error(d.fout);
-    toonKlaar("advies", d);
-  } catch (e) { toonKlaar("nazoek"); }
-  finally { clearTimeout(t); }
-}
 
 weergeef();
 </script>
