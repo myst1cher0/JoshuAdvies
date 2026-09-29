@@ -71,12 +71,12 @@ const PLATFORMS = {
     versies: [["Windows 7 of ouder", 7], ["Windows 8", 8], ["Windows 10", 10], ["Windows 11 of nieuwer", 11]]
   },
   MacOS: {
-    min: 15,
-    minLabel: "macOS 15 (Sequoia) of nieuwer",
-    reden: "Apple geeft alleen nog beveiligingsupdates vanaf macOS 15 (Sequoia).",
+    min: 14,
+    minLabel: "macOS 14 (Sonoma) of nieuwer",
+    reden: "Apple geeft alleen nog beveiligingsupdates vanaf macOS 14 (Sonoma).",
     zoek: "Klik op het Apple-menu linksboven > Over deze Mac > lees het versienummer",
     naamZoek: "Klik op het Apple-menu linksboven > Over deze Mac > bovenaan staat de naam, bijvoorbeeld Macs van Jan",
-    versies: [["macOS 13 of ouder", 13], ["macOS 14 (Sonoma)", 14], ["macOS 15 (Sequoia)", 15], ["macOS 26 of nieuwer", 26]]
+    versies: [["macOS 13 of ouder", 13], ["macOS 14 (Sonoma)", 14], ["macOS 15 of nieuwer", 15]]
   },
   Android: {
     min: 12,
@@ -84,23 +84,23 @@ const PLATFORMS = {
     reden: "De app van ABN AMRO, en met haar de meeste Nederlandse banken, vraagt minimaal Android 12.",
     zoek: "Open Instellingen > Over de telefoon of Over de tablet > Android-versie",
     naamZoek: "Open Instellingen > Over de telefoon of Over de tablet > bovenaan staat de modelnaam en de apparaatnaam",
-    versies: [["Android 10 of ouder", 10], ["Android 11", 11], ["Android 12", 12], ["Android 13", 13], ["Android 14 of nieuwer", 14]]
+    versies: [["Android 10 of ouder", 10], ["Android 11", 11], ["Android 12", 12], ["Android 13 of nieuwer", 13]]
   },
   iOS: {
-    min: 18,
-    minLabel: "iOS 18 of nieuwer",
-    reden: "Apple ondersteunt iOS 18 nog, en adviseert voor de volgende jaren iOS 18 of nieuwer.",
+    min: 16,
+    minLabel: "iOS 16 of nieuwer",
+    reden: "De apps van de Nederlandse banken vragen minimaal iOS 16. Bij iOS 15 en ouder werken ze niet meer.",
     zoek: "Open Instellingen > Algemeen > Info > Softwareversie",
     naamZoek: "Open Instellingen > Algemeen > Info > bovenaan staat de naam, bijvoorbeeld iPhone van Jan",
-    versies: [["iOS 16 of ouder", 16], ["iOS 17", 17], ["iOS 18", 18], ["iOS 26 of nieuwer", 26]]
+    versies: [["iOS 15 of ouder", 15], ["iOS 16", 16], ["iOS 17", 17], ["iOS 18 of nieuwer", 18]]
   },
   iPadOS: {
-    min: 18,
-    minLabel: "iPadOS 18 of nieuwer",
-    reden: "Apple ondersteunt iPadOS 18 nog, en adviseert voor de volgende jaren iPadOS 18 of nieuwer.",
+    min: 16,
+    minLabel: "iPadOS 16 of nieuwer",
+    reden: "De apps van de Nederlandse banken vragen minimaal iPadOS 16. Bij iPadOS 15 en ouder werken ze niet meer.",
     zoek: "Open Instellingen > Algemeen > Info > Softwareversie",
     naamZoek: "Open Instellingen > Algemeen > Info > bovenaan staat de naam, bijvoorbeeld iPad van Jan",
-    versies: [["iPadOS 16 of ouder", 16], ["iPadOS 17", 17], ["iPadOS 18", 18], ["iPadOS 26 of nieuwer", 26]]
+    versies: [["iPadOS 15 of ouder", 15], ["iPadOS 16", 16], ["iPadOS 17", 17], ["iPadOS 18 of nieuwer", 18]]
   }
 };
 
@@ -132,7 +132,9 @@ const stappen = {
     },
     volgende: v => {
       if (v === "weetniet") return "versie-info";
-      return v < PLATFORMS[state.systeem].min ? "teoud" : "traag";
+      const p = PLATFORMS[state.systeem];
+      if (v < p.min) return "teoud";
+      return v === p.min ? "bijna" : "traag";
     }
   },
   traag: {
@@ -207,7 +209,7 @@ function toonKlaar(naam) {
   if (naam === "nietrelevant") {
     h = leeg("U hoeft niets te doen");
     const k = el("div", "kader");
-    k.append(el("p", "", "Uw apparaat is nog up-to-date en krijgt alle beveiligingsupdates. Zolang u geen last heeft van traagheid, is de rest van deze test niet nodig."));
+    k.append(el("p", "", "Uw apparaat draait een versie die nog volledig ondersteund wordt, en u heeft geen last van traagheid. Er is dus niets aan de hand."));
     k.append(el("p", "", "Merkt u later toch dat het langzamer wordt? Doe de test dan gerust opnieuw."));
     scherm.append(k, begin(), terugKnop());
   } else if (naam === "bel") {
@@ -218,7 +220,7 @@ function toonKlaar(naam) {
     scherm.append(k, begin(), terugKnop());
   } else if (naam === "versie-info") {
     const p = PLATFORMS[state.systeem];
-    const soort = { computer: "op uw computer", tablet: "op uw tablet", telefoon: "op uw telefoon" }[state.apparaat];
+    const soort = "op uw " + state.apparaat;
     h = leeg("Zo vindt u de versie");
     const kop1 = el("p", "subkop", "1. De versie van het systeem " + soort);
     const k = el("div", "stappen");
@@ -230,6 +232,22 @@ function toonKlaar(naam) {
     k3.append(el("p", "", "Schrijf beide op, of bel ons even. Met de naam en de versie weten wij meteen wat er aan de hand is."));
     k3.append(belRegel("Bel ons op:"));
     scherm.append(kop1, k, kop2, k2, k3, begin(), terugKnop());
+  } else if (naam === "bijna") {
+    const p = PLATFORMS[state.systeem];
+    const label = p.versies.find(([, w]) => w === state.versie)[0];
+    h = leeg("Uw apparaat voldoet, maar niet lang meer");
+    const s = el("div", "samenvatting");
+    s.append(el("span", "label", "Lees dit voor aan ons"));
+    s.append(el("p", "", "Dit apparaat draait " + label + ". Dat is de allerlaagste versie die nog ondersteund wordt, dus het voldoet nog en u kunt het gewoon blijven gebruiken. Maar het zal niet lang meer meegaan."));
+    const f = el("div", "kader feiten");
+    [["Apparaat", state.apparaat], ["Systeem", state.systeem], ["Versie", label], ["Ons advies", "Nu vervangen is verstandig"]].forEach(([k2, v]) => {
+      const rij = el("div"); rij.append(el("b", "", k2), el("span", "", String(v))); f.append(rij);
+    });
+    const k3 = el("div", "kader");
+    k3.append(el("p", "", "U kunt het apparaat nog gewoon blijven gebruiken. Maar omdat het op de laatste ondersteunde versie staat, houdt het binnen afzienbare tijd op met updates. Dan werken uw apps niet meer en moet u alsnog vervangen."));
+    k3.append(el("p", "", "Wij bespreken graag met u of direct vervangen verstandig is, of dat u het nog even aanhoudt."));
+    k3.append(belRegel("Bel ons op:"));
+    scherm.append(s, f, k3, begin(), terugKnop());
   } else if (naam === "teoud") {
     const p = PLATFORMS[state.systeem];
     const label = p.versies.find(([, w]) => w === state.versie)[0];
