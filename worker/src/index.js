@@ -65,31 +65,44 @@ De samenvatting wordt voorgelezen aan de telefoon. Schrijf dus complete, alledaa
 }
 
 /* ---------- Gemini ---------- */
-async function vraagGemini(env, a) {
+const WACHT = ms => new Promise(r => setTimeout(r, ms));
+
+async function eenPoging(env, a, zoeken) {
   const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 45000);
+  const timer = setTimeout(() => ctrl.abort(), 40000);
   try {
+    const body = {
+      contents: [{ role: "user", parts: [{ text: maakPrompt(a) }] }],
+      generationConfig: { temperature: 0.2, maxOutputTokens: 600 }
+    };
+    if (zoeken) body.tools = [{ google_search: {} }];
     const r = await fetch(GEMINI(MODEL), {
       method: "POST",
       signal: ctrl.signal,
       headers: { "Content-Type": "application/json", "x-goog-api-key": env.GEMINI_KEY },
-      body: JSON.stringify({
-        contents: [{ role: "user", parts: [{ text: maakPrompt(a) }] }],
-        tools: [{ google_search: {} }],
-        generationConfig: { temperature: 0.2, maxOutputTokens: 600 }
-      })
+      body: JSON.stringify(body)
     });
-    if (!r.ok) return null;
+    if (!r.ok) return { fout: r.status };
     const data = await r.json();
     const ruw = data?.candidates?.[0]?.content?.parts?.map(p => p.text || "").join("") || "";
-    const match = ruw.match(/\{[\s\S]*\}/);
-    if (!match) return null;
-    return JSON.parse(match[0]);
+    const m = ruw.match(/\{[\s\S]*\}/);
+    return m ? { data: JSON.parse(m[0]), gezocht: zoeken } : { fout: "leesbaar" };
   } catch {
-    return null;
+    return { fout: 0 };
   } finally {
     clearTimeout(timer);
   }
+}
+
+async function vraagGemini(env, a) {
+  for (let i = 0; i < 3; i++) {
+    const r = await eenPoging(env, a, true);
+    if (r.data) return r.data;
+    if (r.fout !== 503 && r.fout !== 0) break;
+    await WACHT(1500 * (i + 1));
+  }
+  const zonder = await eenPoging(env, a, false);
+  return zonder.data ? zonder.data : null;
 }
 
 const reinigen = (v, max) => String(v == null ? "" : v).replace(/["\[\]{}]/g, "").trim().slice(0, max);
